@@ -13,8 +13,8 @@ def tokenize(line):
 			if buf.strip() <> '':
 				headers.append(buf.strip())
 			buf = ""
-	buf += i
-	lasti = i
+		buf += i
+		lasti = i
 	headers.append(buf.strip())
 	return headers
 
