@@ -2,6 +2,7 @@ import re
 import sys
 import io
 import json
+from optparse import OptionParser
 
 def tokenize(line):
       headers = []
@@ -21,7 +22,8 @@ class NodetoolUtil:
   def parse_cfhistograms(self, lines):
    data = {}
    ind = 0
-   for line in lines:
+   for l in lines:
+    line = l.strip()
     if ind == 1:
       # headers (Percentile  SSTables     Write Latency      Read Latency    Partition Size        Cell Count)
       headers = [h.replace(" ", "_").lower() for h in tokenize(line)[1:]]
@@ -43,9 +45,11 @@ class NodetoolUtil:
    return data
 
   def parse_cfstats(self, lines):
+   data = {}
    current_keyspace = ""
    current_table = ""
-   for line in lines:
+   for l in lines:
+    line = l.strip()
     mk = re.match("Keyspace: ([a-zA-Z0-9_]+)", line)
     mt = re.match("Table: ([a-zA-Z0-9_]+)", line)
     if mk:
@@ -72,21 +76,21 @@ class NodetoolUtil:
    return data
 
 
+lines = sys.stdin
+
+parser = OptionParser()
+parser.add_option("-t", "--type", dest="type", help="nodetool output type")
+
+(options, args) = parser.parse_args()
+
 u = NodetoolUtil()
+if options.type == "cfhistograms":
+    data = u.parse_cfhistograms(lines)
+elif options.type == "cfstats":
+    data = u.parse_cfstats(lines)
+else:
+    print parser.print_help()
+    sys.exit(0)
 
-lines = []
-with open("cfhistograms_timeline_device.txt", "r") as f:
-  for l in f:
-    line = l.strip()
-    lines.append(line)
-data = u.parse_cfhistograms(lines)
-print json.dumps(data)
-
-lines = []
-with open("cfstats.txt", "r") as f:
-  for l in f:
-    line = l.strip()
-    lines.append(line)
-data = u.parse_cfstats(lines)
 print json.dumps(data)
 
