@@ -29,7 +29,7 @@ if [ "$DBS" = "" ]; then
   exit
 fi
 
-if [ "$DESTBASEPATH" = "" ]; then
+if [ "$DESTBASEPATH" = "" -o "$DESTBASEPATH" = "/" ]; then
   echo "Missing required base path (-p)"
   exit
 fi
@@ -61,4 +61,8 @@ done
 if [ ! $REMOTETARGET = "" ]; then
   echo "Copy to [$REMOTETARGET]"
   rsync -az $DESTBASEPATH/$BACKUPDATE/ $REMOTETARGET/$BACKUPDATE/
+  if [ $? -eq 0 ]; then
+    echo "Cleanup [$DESTBASEPATH/$BACKUPDATE]"
+    rm -rf "$DESTBASEPATH/$BACKUPDATE"
+  fi
 fi
