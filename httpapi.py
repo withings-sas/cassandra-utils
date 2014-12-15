@@ -26,7 +26,7 @@ def stats():
 	u = nodetoolutil.NodetoolUtil()
 	data = {
 		'cfstats': u.cfstats(),
-		'tpstats': {} #u.tpstats()
+		'tpstats': u.tpstats()
 	}
 	return json.dumps(data)
 

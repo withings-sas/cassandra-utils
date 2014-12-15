@@ -20,10 +20,38 @@ def tokenize(line):
 	return headers
 
 class NodetoolUtil:
+	def tpstats(self):
+		nodetool_cmd = "nodetool tpstats"
+		lines = subprocess.check_output(nodetool_cmd, shell=True).split("\n")
+		return self.parse_tpstats(lines)
+
+	def cfstats(self):
+		nodetool_cmd = "nodetool cfstats"
+		lines = subprocess.check_output(nodetool_cmd, shell=True).split("\n")
+		return self.parse_cfstats(lines)
+
 	def cfhistograms(self, keyspace, table):
 		nodetool_cmd = "nodetool cfhistograms %s %s" % (keyspace, table)
 		lines = subprocess.check_output(nodetool_cmd, shell=True).split("\n")
 		return self.parse_cfhistograms(lines)
+
+	def parse_tpstats(self, lines):
+		data = {}
+		ind = 0
+		for l in lines:
+			line = l.strip()
+			if ind == 0:
+				# Pool Name                    Active   Pending      Completed   Blocked  All time blocked
+				headers = [h.replace(" ", "_").lower() for h in tokenize(line)[1:]]
+			elif ind >= 1:
+				vals = tokenize(line)
+				if len(vals) == 6:
+					data[vals[0]] = {}
+					for i, h in enumerate(headers):
+						v = vals[i+1]
+						data[vals[0]][h] = round(float(v), 3) if "." in v else int(v)
+			ind += 1
+		return data
 
 	def parse_cfhistograms(self, lines):
 		data = {}
@@ -33,7 +61,6 @@ class NodetoolUtil:
 			if ind == 1:
 				# headers (Percentile  SSTables     Write Latency      Read Latency    Partition Size        Cell Count)
 				headers = [h.replace(" ", "_").lower() for h in tokenize(line)[1:]]
-				#data["headers"] = headers
 				for h in headers:
 					data[h] = {}
 			elif ind > 2:
@@ -98,6 +125,8 @@ if __name__ == '__main__':
 		data = u.parse_cfhistograms(lines)
 	elif options.type == "cfstats":
 		data = u.parse_cfstats(lines)
+	elif options.type == "tpstats":
+		data = u.parse_tpstats(lines)
 	else:
 		print parser.print_help()
 		sys.exit(0)
