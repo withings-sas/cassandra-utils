@@ -22,7 +22,7 @@ done
 
 DESTPATH=$DESTBASEPATH"/"$BACKUPDATE"/"`hostname`
 
-echo "[$DESTBASEPATH] [$DBS] [$REMOTETARGET]"
+echo `date +%Y-%m-%dT%H:%M:%S`" START [$DESTBASEPATH] [$DBS] [$REMOTETARGET]"
 
 if [ "$DBS" = "" ]; then
   echo "Missing required keyspaces (-k)"
@@ -38,9 +38,9 @@ fi
 
 for DB in $DBS
 do
-  echo "Snapshoting..."
+  echo `date +%Y-%m-%dT%H:%M:%S`" Snapshoting..."
   nodetool snapshot $DB
-  echo "Done. Moving snapshots to backup..."
+  echo `date +%Y-%m-%dT%H:%M:%S`" Done. Moving snapshots to backup..."
   for keyspace in $BASEPATH/$DB/*
   do
     for snap in $keyspace*/snapshots/*
@@ -48,21 +48,23 @@ do
       echo $snap | egrep 'snapshots\/[0-9]{13}$' >/dev/null
       if [ $? -eq 0 ]; then
         DESTFULLPATH=$DESTPATH/$(echo "$snap" | awk -F '/' '{ print $6"/"$7 }')
-        echo "  MOVE [$snap] to [$DESTFULLPATH]"
+        echo `date +%Y-%m-%dT%H:%M:%S`"   MOVE [$snap] to [$DESTFULLPATH]"
         mkdir -p $DESTFULLPATH
         mv $snap/* $DESTFULLPATH
         rmdir $snap
       fi
     done
   done
-  echo "Done"
+  echo `date +%Y-%m-%dT%H:%M:%S`" Done"
 done
 
 if [ ! $REMOTETARGET = "" ]; then
-  echo "Copy to [$REMOTETARGET]"
+  echo `date +%Y-%m-%dT%H:%M:%S`" Copy to [$REMOTETARGET]"
   rsync -az $DESTBASEPATH/$BACKUPDATE/ $REMOTETARGET/$BACKUPDATE/
   if [ $? -eq 0 ]; then
-    echo "Cleanup [$DESTBASEPATH/$BACKUPDATE]"
+    echo `date +%Y-%m-%dT%H:%M:%S`" Cleanup [$DESTBASEPATH/$BACKUPDATE]"
     rm -rf "$DESTBASEPATH/$BACKUPDATE"
   fi
 fi
+
+echo `date +%Y-%m-%dT%H:%M:%S`" ALL DONE"
