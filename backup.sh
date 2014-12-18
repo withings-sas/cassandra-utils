@@ -3,7 +3,7 @@
 BACKUPDATE=$(date +%Y%m%d_%H%M%S)
 BASEPATH=/var/lib/cassandra/data
 
-while getopts "k:p:r:" opt; do
+while getopts "k:p:r:f:n:" opt; do
   case $opt in
     p)
       DESTBASEPATH=$OPTARG
@@ -12,7 +12,13 @@ while getopts "k:p:r:" opt; do
       DBS=$OPTARG
       ;;
     r)
-      REMOTETARGET=$OPTARG
+      REMOTEHOST=$OPTARG
+      ;;
+    f)
+      REMOTEFOLDER=$OPTARG
+      ;;
+    n)
+      NOTIFYFILE=$OPTARG
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -22,7 +28,7 @@ done
 
 DESTPATH=$DESTBASEPATH"/"$BACKUPDATE"/"`hostname`
 
-echo `date +%Y-%m-%dT%H:%M:%S`" START [$DESTBASEPATH] [$DBS] [$REMOTETARGET]"
+echo `date +%Y-%m-%dT%H:%M:%S`" START LocalPath:[$DESTBASEPATH] Keyspaces:[$DBS] Remote:[$REMOTEHOST:$REMOTEFOLDER] Notify:[$NOTIFYFILE]"
 
 if [ "$DBS" = "" ]; then
   echo "Missing required keyspaces (-k)"
@@ -34,8 +40,6 @@ if [ "$DESTBASEPATH" = "" -o "$DESTBASEPATH" = "/" ]; then
   exit
 fi
 
-#exit
-
 for DB in $DBS
 do
   echo `date +%Y-%m-%dT%H:%M:%S`" Snapshoting..."
@@ -45,8 +49,9 @@ do
   do
     for snap in $keyspace*/snapshots/*
     do
-      echo $snap | egrep 'snapshots\/[0-9]{13}$' >/dev/null
-      if [ $? -eq 0 ]; then
+      #echo $snap | egrep 'snapshots\/[0-9]{13}$' >/dev/null
+      #if [ $? -eq 0 ]; then
+      if [[ $snap =~ snapshots\/[0-9]{13}$ ]]; then
         DESTFULLPATH=$DESTPATH/$(echo "$snap" | awk -F '/' '{ print $6"/"$7 }')
         echo `date +%Y-%m-%dT%H:%M:%S`"   MOVE [$snap] to [$DESTFULLPATH]"
         mkdir -p $DESTFULLPATH
@@ -58,12 +63,16 @@ do
   echo `date +%Y-%m-%dT%H:%M:%S`" Done"
 done
 
-if [ ! $REMOTETARGET = "" ]; then
-  echo `date +%Y-%m-%dT%H:%M:%S`" Copy to [$REMOTETARGET]"
-  rsync -az $DESTBASEPATH/$BACKUPDATE/ $REMOTETARGET/$BACKUPDATE/
+if [ ! $REMOTEHOST = "" ]; then
+  echo `date +%Y-%m-%dT%H:%M:%S`" Copy from [$DESTBASEPATH/$BACKUPDATE/] to [$REMOTEHOST:$REMOTEFOLDER/$BACKUPDATE/]"
+  rsync -az $DESTBASEPATH/$BACKUPDATE/ "$REMOTEHOST:$REMOTEFOLDER/$BACKUPDATE/"
   if [ $? -eq 0 ]; then
     echo `date +%Y-%m-%dT%H:%M:%S`" Cleanup [$DESTBASEPATH/$BACKUPDATE]"
     rm -rf "$DESTBASEPATH/$BACKUPDATE"
+    if [ ! $NOTIFYFILE = "" ]; then
+      echo `date +%Y-%m-%dT%H:%M:%S`" Notify backup server with file [$NOTIFYFILE]"
+      ssh $REMOTEHOST "echo $BACKUPDATE > $NOTIFYFILE"
+    fi
   fi
 fi
 
