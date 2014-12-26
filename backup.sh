@@ -64,8 +64,9 @@ do
 done
 
 if [ ! $REMOTEHOST = "" ]; then
-  echo `date +%Y-%m-%dT%H:%M:%S`" Copy from [$DESTBASEPATH/$BACKUPDATE/] to [$REMOTEHOST:$REMOTEFOLDER/$BACKUPDATE/]"
-  rsync -az $DESTBASEPATH/$BACKUPDATE/ "$REMOTEHOST:$REMOTEFOLDER/$BACKUPDATE/"
+  echo `date +%Y-%m-%dT%H:%M:%S`" Copy from [$DESTBASEPATH/$BACKUPDATE/] to [$REMOTEHOST:$REMOTEFOLDER/`hostname`/$BACKUPDATE/]"
+  ssh $REMOTEHOST "mkdir -p $REMOTEFOLDER/`hostname`/$BACKUPDATE/"
+  rsync -az $DESTBASEPATH/$BACKUPDATE/ "$REMOTEHOST:$REMOTEFOLDER/`hostname`/$BACKUPDATE/"
   if [ $? -eq 0 ]; then
     echo `date +%Y-%m-%dT%H:%M:%S`" Cleanup [$DESTBASEPATH/$BACKUPDATE]"
     rm -rf "$DESTBASEPATH/$BACKUPDATE"
