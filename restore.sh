@@ -49,7 +49,7 @@ fi
 mkdir $BACKUP_PATH
 SOURCE_FULLPATH="$REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/`date +%Y%m%d`*"
 echo "rsync from [$SOURCE_FULLPATH] to [$BACKUP_PATH]"
-rsync -az $SOURCE_FULLPATH $BACKUP_PATH
+rsync -az --progress $SOURCE_FULLPATH $BACKUP_PATH
 if [ $? -ne 0 ]; then
   echo "Error on rsync"
   exit
