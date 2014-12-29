@@ -46,8 +46,8 @@ if [ "$REMOTE_PATH" = "" ]; then
   exit
 fi
 
-mkdir $BACKUP_PATH
-SOURCE_FULLPATH="$REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/`date +%Y%m%d`*"
+mkdir -p $BACKUP_PATH
+SOURCE_FULLPATH="$REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/$BACKUP_DATE.tbz2"
 echo "rsync from [$SOURCE_FULLPATH] to [$BACKUP_PATH]"
 rsync -az --progress $SOURCE_FULLPATH $BACKUP_PATH
 if [ $? -ne 0 ]; then
@@ -56,8 +56,8 @@ if [ $? -ne 0 ]; then
 fi
 
 cd $BACKUP_PATH
-echo "untar [`date +%Y%m%d`*]"
-tar xjf `date +%Y%m%d`*.tbz2
+echo "untar [$BACKUP_DATE.tbz2]"
+tar xjf $BACKUP_DATE.tbz2
 if [ $? -ne 0 ]; then
   echo "Error on untar"
   exit
