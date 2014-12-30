@@ -47,37 +47,35 @@ if [ "$REMOTE_PATH" = "" ]; then
 fi
 
 mkdir -p $BACKUP_PATH
-SOURCE_FULLPATH="$REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/$BACKUP_DATE.tbz2"
+SOURCE_FULLPATH="$REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/$BACKUP_DATE/"
 echo "rsync from [$SOURCE_FULLPATH] to [$BACKUP_PATH]"
-rsync -az --progress $SOURCE_FULLPATH $BACKUP_PATH
+rsync -az --progress $SOURCE_FULLPATH "$BACKUP_PATH/$BACKUP_DATE/"
 if [ $? -ne 0 ]; then
   echo "Error on rsync"
   exit
 fi
 
-cd $BACKUP_PATH
-echo "untar [$BACKUP_DATE.tbz2]"
-tar xjf $BACKUP_DATE.tbz2
-if [ $? -ne 0 ]; then
-  echo "Error on untar"
-  exit
-fi
-
 # Real reload
-#service cassandra stop
+service cassandra stop
 
-for DB in $DBS; do
-  for tablefullpath in /var/lib/cassandra/data/$DB/*; do
+for keyspacename in $DBS; do
+  for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
     tablepath=`basename $tablefullpath`
     if [[ $tablepath =~ [a-z0-9_-]+-[a-f0-9]{32} ]]; then
       table=$(echo $tablepath | sed -r 's/([a-z0-9_-]+)-[a-f0-9]{32}/\1/')
-      BACKUP_FULLPATH=$BACKUP_PATH"/backup/cassandra/"$BACKUP_HOST"/"$BACKUP_DATE"/"$BACKUP_HOST"/"$DB"/"$table"-*"
-      if [ -d $BACKUP_FULLPATH ]; then
-        echo $BACKUP_FULLPATH" TO "$tablefullpath
-        #rsync -avz $BACKUP_FULLPATH/ $tablefullpath/
+      BACKUP_FULLPATH=$BACKUP_PATH"/"$BACKUP_DATE"/"$keyspacename"/"$table".tgz"
+      if [ -f $BACKUP_FULLPATH ]; then
+        if [ ! -z $tablefullpath -a ! -z $table ]; then
+          echo "table:[$table] "$BACKUP_FULLPATH" TO "$tablefullpath
+          rm -f "$tablefullpath/*"
+          cd $tablefullpath
+          tar -xzf $BACKUP_FULLPATH
+          mv $table/* .
+          rmdir $table
+        fi
       fi
     fi
   done
 done
 
-#service cassandra start
+service cassandra start
