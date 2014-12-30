@@ -79,7 +79,7 @@ if [ ! $REMOTEHOST = "" ]; then
       done
       if [[ $DESTPATH =~ .*/tmp/.* ]]; then
         echo `date +%Y-%m-%dT%H:%M:%S`" rm -rf $DESTPATH/$keyspacename"
-        #rm -rf $DESTPATH/$keyspacename
+        rm -rf $DESTPATH/$keyspacename
       fi
     fi
   done
