@@ -1,6 +1,7 @@
 #!/bin/bash
 
 BACKUP_PATH=/var/lib/cassandra/backup_data
+CLEANUP="no"
 
 while getopts "s:d:k:r:f:c:" opt; do
   case $opt in
