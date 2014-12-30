@@ -40,19 +40,19 @@ if [ "$DESTBASEPATH" = "" -o "$DESTBASEPATH" = "/" ]; then
   exit
 fi
 
-for DB in $DBS
+for keyspacename in $DBS
 do
   echo `date +%Y-%m-%dT%H:%M:%S`" Snapshoting..."
-  nodetool snapshot $DB
+  nodetool snapshot $keyspacename
   echo `date +%Y-%m-%dT%H:%M:%S`" Done. Moving snapshots to backup..."
-  for keyspace in $BASEPATH/$DB/*
+  for keyspacepath in $BASEPATH/$keyspacename/*
   do
-    for snap in $keyspace*/snapshots/*
+    for snap in $keyspacepath*/snapshots/*
     do
-      #echo $snap | egrep 'snapshots\/[0-9]{13}$' >/dev/null
-      #if [ $? -eq 0 ]; then
       if [[ $snap =~ snapshots\/[0-9]{13}$ ]]; then
-        DESTFULLPATH=$DESTPATH/$(echo "$snap" | awk -F '/' '{ print $6"/"$7 }')
+        #DESTFULLPATH=$DESTPATH/$(echo "$snap" | awk -F '/' '{ print $6"/"$7 }')
+        tablename=$(echo "$snap" | sed -r 's/.*\/(.*)-[a-f0-9]{32}\/snapshots\/[0-9]{13}/\1/')
+        DESTFULLPATH="$DESTPATH/$keyspacename/$tablename"
         echo `date +%Y-%m-%dT%H:%M:%S`"   MOVE [$snap] to [$DESTFULLPATH]"
         mkdir -p $DESTFULLPATH
         mv $snap/* $DESTFULLPATH
@@ -65,8 +65,26 @@ done
 
 if [ ! $REMOTEHOST = "" ]; then
   echo `date +%Y-%m-%dT%H:%M:%S`" Copy from [$DESTBASEPATH/$BACKUPDATE/] to [$REMOTEHOST:$REMOTEFOLDER/`hostname`/$BACKUPDATE/]"
-  ssh $REMOTEHOST "mkdir -p $REMOTEFOLDER/`hostname`/$BACKUPDATE/"
-  rsync -az $DESTBASEPATH/$BACKUPDATE/ "$REMOTEHOST:$REMOTEFOLDER/`hostname`/$BACKUPDATE/"
+  for keyspacename in $DBS
+  do
+    if [ -d $DESTPATH/$keyspacename ]; then
+      echo `date +%Y-%m-%dT%H:%M:%S`" cd $DESTPATH/$keyspacename"
+      cd $DESTPATH/$keyspacename
+      REMOTEFULLPATH="$REMOTEFOLDER/`hostname`/$BACKUPDATE/$keyspacename"
+      ssh $REMOTEHOST "mkdir -p $REMOTEFULLPATH"
+      for table in *
+      do
+        echo `date +%Y-%m-%dT%H:%M:%S`" tar -cf - $table | ssh $REMOTEHOST 'gzip > $REMOTEFULLPATH/$table.tgz'"
+        tar -cf - $table | ssh $REMOTEHOST "gzip > $REMOTEFULLPATH/$table.tgz"
+      done
+      if [[ $DESTPATH =~ .*/tmp/.* ]]; then
+        echo `date +%Y-%m-%dT%H:%M:%S`" rm -rf $DESTPATH/$keyspacename"
+        rm -rf $DESTPATH/$keyspacename
+      fi
+    fi
+  done
+
+  #rsync -az $DESTBASEPATH/$BACKUPDATE/ "$REMOTEHOST:$REMOTEFOLDER/`hostname`/$BACKUPDATE/"
   if [ $? -eq 0 ]; then
     echo `date +%Y-%m-%dT%H:%M:%S`" Cleanup [$DESTBASEPATH/$BACKUPDATE]"
     rm -rf "$DESTBASEPATH/$BACKUPDATE"
