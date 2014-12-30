@@ -79,3 +79,6 @@ for keyspacename in $DBS; do
 done
 
 service cassandra start
+
+echo "Final cleanup of [$BACKUP_PATH/$BACKUP_DATE]"
+rm -rf "$BACKUP_PATH/$BACKUP_DATE"
