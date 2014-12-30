@@ -2,7 +2,7 @@
 
 BACKUP_PATH=/var/lib/cassandra/backup_data
 
-while getopts "s:d:k:r:f:" opt; do
+while getopts "s:d:k:r:f:c:" opt; do
   case $opt in
     s)
       BACKUP_HOST=$OPTARG
@@ -18,6 +18,9 @@ while getopts "s:d:k:r:f:" opt; do
       ;;
     f)
       REMOTE_PATH=$OPTARG
+      ;;
+    c)
+      CLEANUP=$OPTARG
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
@@ -46,14 +49,16 @@ if [ "$REMOTE_PATH" = "" ]; then
   exit
 fi
 
-mkdir -p $BACKUP_PATH
+mkdir -p "$BACKUP_PATH/$BACKUP_DATE/"
 SOURCE_FULLPATH="$REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/$BACKUP_DATE/"
 echo "rsync from [$SOURCE_FULLPATH] to [$BACKUP_PATH]"
-rsync -az --progress $SOURCE_FULLPATH "$BACKUP_PATH/$BACKUP_DATE/"
-if [ $? -ne 0 ]; then
-  echo "Error on rsync"
-  exit
-fi
+for keyspacename in $DBS; do
+  rsync -az --progress $SOURCE_FULLPATH$keyspacename"/" "$BACKUP_PATH/$BACKUP_DATE/$keyspacename/"
+  if [ $? -ne 0 ]; then
+    echo "Error on rsync"
+    exit
+  fi
+done
 
 # Real reload
 service cassandra stop
@@ -80,5 +85,7 @@ done
 
 service cassandra start
 
-echo "Final cleanup of [$BACKUP_PATH/$BACKUP_DATE]"
-rm -rf "$BACKUP_PATH/$BACKUP_DATE"
+if [ $CLEANUP = "yes" ]; then
+  echo "Final cleanup of [$BACKUP_PATH/$BACKUP_DATE]"
+  rm -rf "$BACKUP_PATH/$BACKUP_DATE"
+fi
