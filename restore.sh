@@ -3,13 +3,16 @@
 BACKUP_PATH=/var/lib/cassandra/backup_data
 CLEANUP="no"
 
-while getopts "s:d:k:r:f:c:" opt; do
+while getopts "s:d:t:k:r:f:c:" opt; do
   case $opt in
     s)
       BACKUP_HOST=$OPTARG
       ;;
     d)
       BACKUP_DATE=$OPTARG
+      ;;
+    t)
+      TRIGGER_FILE=$OPTARG
       ;;
     k)
       DBS=$OPTARG
@@ -33,8 +36,8 @@ if [ "$BACKUP_HOST" = "" ]; then
   echo "Missing required source host (-s)"
   exit
 fi
-if [ "$BACKUP_DATE" = "" ]; then
-  echo "Missing required date (-d)"
+if [ "$BACKUP_DATE" = "" -a "$TRIGGER_FILE" = "" ]; then
+  echo "Missing required date (-d) or trigger file (-t)"
   exit
 fi
 if [ "$DBS" = "" ]; then
@@ -48,6 +51,18 @@ fi
 if [ "$REMOTE_PATH" = "" ]; then
   echo "Missing required remote path (-f)"
   exit
+fi
+
+if [ ! -z "$TRIGGER_FILE" ]; then
+  echo "Checking trigger file [$TRIGGER_FILE]"
+  if [ -f "$TRIGGER_FILE" ]; then
+    BACKUP_DATE=$(cat $TRIGGER_FILE)
+    rm $TRIGGER_FILE
+    echo "Found trigger file with content:[$BACKUP_DATE]"
+  else
+    echo "Trigger file not found"
+    exit
+  fi
 fi
 
 mkdir -p "$BACKUP_PATH/$BACKUP_DATE/"
