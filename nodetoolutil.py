@@ -86,6 +86,9 @@ class NodetoolUtil:
 		current_table = ""
 		for l in lines:
 			line = l.strip()
+			line = line.replace('(','')
+			line = line.replace(')','')
+
 			mk = re.match("Keyspace: ([a-zA-Z0-9_]+)", line)
 			mt = re.match("Table: ([a-zA-Z0-9_]+)", line)
 			if mk:
