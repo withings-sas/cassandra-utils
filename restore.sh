@@ -78,6 +78,7 @@ done
 
 # Real reload
 service cassandra stop
+killall java
 
 for keyspacename in $DBS; do
   for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
