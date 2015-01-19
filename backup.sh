@@ -39,6 +39,12 @@ if [ "$DESTBASEPATH" = "" -o "$DESTBASEPATH" = "/" ]; then
   echo "Missing required base path (-p)"
   exit
 fi
+if [ "$REMOTEHOST" = "" ]; then
+  echo "Missing required remote host (-r)"
+  exit
+fi
+
+#set -x
 
 for keyspacename in $DBS
 do
@@ -47,52 +53,35 @@ do
   echo `date +%Y-%m-%dT%H:%M:%S`" Done. Moving snapshots to backup..."
   for keyspacepath in $BASEPATH/$keyspacename/*
   do
+    cd $keyspacepath
     for snap in $keyspacepath*/snapshots/*
     do
       if [[ $snap =~ snapshots\/[0-9]{13}$ ]]; then
-        #DESTFULLPATH=$DESTPATH/$(echo "$snap" | awk -F '/' '{ print $6"/"$7 }')
         tablename=$(echo "$snap" | sed -r 's/.*\/(.*)-[a-f0-9]{32}\/snapshots\/[0-9]{13}/\1/')
-        DESTFULLPATH="$DESTPATH/$keyspacename/$tablename"
-        echo `date +%Y-%m-%dT%H:%M:%S`"   MOVE [$snap] to [$DESTFULLPATH]"
-        mkdir -p $DESTFULLPATH
-        mv $snap/* $DESTFULLPATH
-        rmdir $snap
+        snapshot_timestamp=$(echo "$snap" | sed -r 's/.*\/.*-[a-f0-9]{32}\/snapshots\/([0-9]{13})/\1/')
+        echo `date +%Y-%m-%dT%H:%M:%S`" snap folder:[$snap] tablename:[$tablename] snapshot_timestamp:[$snapshot_timestamp]"
+        REMOTEFULLPATH="$REMOTEFOLDER/`hostname`/$BACKUPDATE/$keyspacename"
+        cd $(dirname $snap)
+        if [ ! -d "$tablename" ]; then
+          echo `date +%Y-%m-%dT%H:%M:%S`" Move [$snapshot_timestamp] to [$tablename]"
+          mv "$snapshot_timestamp" "$tablename"
+          echo `date +%Y-%m-%dT%H:%M:%S`" tar -cf - $tablename | ssh $REMOTEHOST 'bzip2 > $REMOTEFULLPATH/$tablename.tbz2'"
+          ssh $REMOTEHOST "mkdir -p $REMOTEFULLPATH"
+          tar -cf - $tablename | ssh $REMOTEHOST "bzip2 > $REMOTEFULLPATH/$tablename.tbz2"
+          rm -rf $snap
+          rm -rf $tablename
+        else
+          echo `date +%Y-%m-%dT%H:%M:%S`" Abort, folder:[$tablename] already exists"
+        fi
       fi
     done
   done
   echo `date +%Y-%m-%dT%H:%M:%S`" Done"
 done
 
-if [ ! $REMOTEHOST = "" ]; then
-  echo `date +%Y-%m-%dT%H:%M:%S`" Copy from [$DESTBASEPATH/$BACKUPDATE/] to [$REMOTEHOST:$REMOTEFOLDER/`hostname`/$BACKUPDATE/]"
-  for keyspacename in $DBS
-  do
-    if [ -d $DESTPATH/$keyspacename ]; then
-      echo `date +%Y-%m-%dT%H:%M:%S`" cd $DESTPATH/$keyspacename"
-      cd $DESTPATH/$keyspacename
-      REMOTEFULLPATH="$REMOTEFOLDER/`hostname`/$BACKUPDATE/$keyspacename"
-      ssh $REMOTEHOST "mkdir -p $REMOTEFULLPATH"
-      for table in *
-      do
-        echo `date +%Y-%m-%dT%H:%M:%S`" tar -cf - $table | ssh $REMOTEHOST 'gzip > $REMOTEFULLPATH/$table.tgz'"
-        tar -cf - $table | ssh $REMOTEHOST "gzip > $REMOTEFULLPATH/$table.tgz"
-      done
-      if [[ $DESTPATH =~ .*/tmp/.* ]]; then
-        echo `date +%Y-%m-%dT%H:%M:%S`" rm -rf $DESTPATH/$keyspacename"
-        rm -rf $DESTPATH/$keyspacename
-      fi
-    fi
-  done
-
-  #rsync -az $DESTBASEPATH/$BACKUPDATE/ "$REMOTEHOST:$REMOTEFOLDER/`hostname`/$BACKUPDATE/"
-  if [ $? -eq 0 ]; then
-    echo `date +%Y-%m-%dT%H:%M:%S`" Cleanup [$DESTBASEPATH/$BACKUPDATE]"
-    rm -rf "$DESTBASEPATH/$BACKUPDATE"
-    if [ ! $NOTIFYFILE = "" ]; then
-      echo `date +%Y-%m-%dT%H:%M:%S`" Notify backup server with file [$NOTIFYFILE]"
-      ssh $REMOTEHOST "echo $BACKUPDATE > $NOTIFYFILE"
-    fi
-  fi
+if [ ! $NOTIFYFILE = "" ]; then
+  echo `date +%Y-%m-%dT%H:%M:%S`" Notify backup server with file [$NOTIFYFILE]"
+  ssh $REMOTEHOST "echo $BACKUPDATE > $NOTIFYFILE"
 fi
 
 echo `date +%Y-%m-%dT%H:%M:%S`" ALL DONE"
