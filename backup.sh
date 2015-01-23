@@ -65,9 +65,9 @@ do
         if [ ! -d "$tablename" ]; then
           echo `date +%Y-%m-%dT%H:%M:%S`" Move [$snapshot_timestamp] to [$tablename]"
           mv "$snapshot_timestamp" "$tablename"
-          echo `date +%Y-%m-%dT%H:%M:%S`" tar -cf - $tablename | ssh $REMOTEHOST 'bzip2 > $REMOTEFULLPATH/$tablename.tbz2'"
+          echo `date +%Y-%m-%dT%H:%M:%S`" tar -cf - $tablename | ssh $REMOTEHOST 'pbzip2 -p2 > $REMOTEFULLPATH/$tablename.tbz2'"
           ssh $REMOTEHOST "mkdir -p $REMOTEFULLPATH"
-          tar -cf - $tablename | ssh $REMOTEHOST "bzip2 > $REMOTEFULLPATH/$tablename.tbz2"
+          tar -cf - $tablename | ssh $REMOTEHOST "pbzip2 -p2 > $REMOTEFULLPATH/$tablename.tbz2"
           rm -rf $snap
           rm -rf $tablename
         else
