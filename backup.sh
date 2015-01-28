@@ -69,7 +69,7 @@ do
           echo `date +%Y-%m-%dT%H:%M:%S`" tar -cf - $tablename | ssh $REMOTEHOST 'pbzip2 -p2 > $REMOTEFULLPATH/$tablename.tbz2'"
           cd $BACKUP_TEMP_FOLDER
           tar -cf - "$tablename" | ssh $REMOTEHOST "pbzip2 -p2 > $REMOTEFULLPATH/$tablename.tbz2"
-          #rm -rf "$BACKUP_TEMP_FOLDER$tablename"
+          rm -rf "$BACKUP_TEMP_FOLDER$tablename"
         else
           echo `date +%Y-%m-%dT%H:%M:%S`" Abort, folder:[$tablename] already exists"
         fi
