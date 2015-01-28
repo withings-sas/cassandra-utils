@@ -6,7 +6,7 @@ BASEPATH=/var/lib/cassandra/data
 while getopts "k:p:r:f:n:" opt; do
   case $opt in
     p)
-      DESTBASEPATH=$OPTARG
+      BACKUP_TEMP_FOLDER=$OPTARG
       ;;
     k)
       DBS=$OPTARG
@@ -26,16 +26,13 @@ while getopts "k:p:r:f:n:" opt; do
   esac
 done
 
-DESTPATH=$DESTBASEPATH"/"$BACKUPDATE"/"`hostname`
-
-echo `date +%Y-%m-%dT%H:%M:%S`" START LocalPath:[$DESTBASEPATH] Keyspaces:[$DBS] Remote:[$REMOTEHOST:$REMOTEFOLDER] Notify:[$NOTIFYFILE]"
+echo `date +%Y-%m-%dT%H:%M:%S`" START BackupPath:[$BACKUP_TEMP_FOLDER] Keyspaces:[$DBS] Remote:[$REMOTEHOST:$REMOTEFOLDER] Notify:[$NOTIFYFILE]"
 
 if [ "$DBS" = "" ]; then
   echo "Missing required keyspaces (-k)"
   exit
 fi
-
-if [ "$DESTBASEPATH" = "" -o "$DESTBASEPATH" = "/" ]; then
+if [ "$BACKUP_TEMP_FOLDER" = "" -o "$BACKUP_TEMP_FOLDER" = "/" ]; then
   echo "Missing required base path (-p)"
   exit
 fi
@@ -44,7 +41,12 @@ if [ "$REMOTEHOST" = "" ]; then
   exit
 fi
 
-#set -x
+BACKUP_TEMP_FOLDER=${BACKUP_TEMP_FOLDER%/}"/"
+
+set -x
+
+mkdir -p $BACKUP_TEMP_FOLDER
+cd $BACKUP_TEMP_FOLDER
 
 for keyspacename in $DBS
 do
@@ -58,18 +60,16 @@ do
     do
       if [[ $snap =~ snapshots\/[0-9]{13}$ ]]; then
         tablename=$(echo "$snap" | sed -r 's/.*\/(.*)-[a-f0-9]{32}\/snapshots\/[0-9]{13}/\1/')
-        snapshot_timestamp=$(echo "$snap" | sed -r 's/.*\/.*-[a-f0-9]{32}\/snapshots\/([0-9]{13})/\1/')
-        echo `date +%Y-%m-%dT%H:%M:%S`" snap folder:[$snap] tablename:[$tablename] snapshot_timestamp:[$snapshot_timestamp]"
+        echo `date +%Y-%m-%dT%H:%M:%S`" snap folder:[$snap] tablename:[$tablename]"
         REMOTEFULLPATH="$REMOTEFOLDER/`hostname`/$BACKUPDATE/$keyspacename"
-        cd $(dirname $snap)
-        if [ ! -d "$tablename" ]; then
-          echo `date +%Y-%m-%dT%H:%M:%S`" Move [$snapshot_timestamp] to [$tablename]"
-          mv "$snapshot_timestamp" "$tablename"
-          echo `date +%Y-%m-%dT%H:%M:%S`" tar -cf - $tablename | ssh $REMOTEHOST 'pbzip2 -p2 > $REMOTEFULLPATH/$tablename.tbz2'"
+        if [ ! -d "$BACKUP_TEMP_FOLDER$tablename" ]; then
+          echo `date +%Y-%m-%dT%H:%M:%S`" Move [$snap] to [$BACKUP_TEMP_FOLDER$tablename]"
+          mv "$snap" "$BACKUP_TEMP_FOLDER$tablename"
           ssh $REMOTEHOST "mkdir -p $REMOTEFULLPATH"
-          tar -cf - $tablename | ssh $REMOTEHOST "pbzip2 -p2 > $REMOTEFULLPATH/$tablename.tbz2"
-          rm -rf $snap
-          rm -rf $tablename
+          echo `date +%Y-%m-%dT%H:%M:%S`" tar -cf - $tablename | ssh $REMOTEHOST 'pbzip2 -p2 > $REMOTEFULLPATH/$tablename.tbz2'"
+          cd $BACKUP_TEMP_FOLDER
+          tar -cf - "$tablename" | ssh $REMOTEHOST "pbzip2 -p2 > $REMOTEFULLPATH/$tablename.tbz2"
+          #rm -rf "$BACKUP_TEMP_FOLDER$tablename"
         else
           echo `date +%Y-%m-%dT%H:%M:%S`" Abort, folder:[$tablename] already exists"
         fi
