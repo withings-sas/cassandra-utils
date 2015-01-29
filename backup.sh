@@ -5,9 +5,6 @@ BASEPATH=/var/lib/cassandra/data
 
 while getopts "k:p:r:f:n:" opt; do
   case $opt in
-    p)
-      BACKUP_TEMP_FOLDER=$OPTARG
-      ;;
     k)
       DBS=$OPTARG
       ;;
@@ -26,27 +23,18 @@ while getopts "k:p:r:f:n:" opt; do
   esac
 done
 
-echo `date +%Y-%m-%dT%H:%M:%S`" START BackupPath:[$BACKUP_TEMP_FOLDER] Keyspaces:[$DBS] Remote:[$REMOTEHOST:$REMOTEFOLDER] Notify:[$NOTIFYFILE]"
+echo `date +%Y-%m-%dT%H:%M:%S`" START Keyspaces:[$DBS] Remote:[$REMOTEHOST:$REMOTEFOLDER] Notify:[$NOTIFYFILE]"
 
 if [ "$DBS" = "" ]; then
   echo "Missing required keyspaces (-k)"
   exit
 fi
-#if [ "$BACKUP_TEMP_FOLDER" = "" -o "$BACKUP_TEMP_FOLDER" = "/" ]; then
-#  echo "Missing required base path (-p)"
-#  exit
-#fi
 if [ "$REMOTEHOST" = "" ]; then
   echo "Missing required remote host (-r)"
   exit
 fi
 
-#BACKUP_TEMP_FOLDER=${BACKUP_TEMP_FOLDER%/}"/"
-
-set -x
-
-#mkdir -p $BACKUP_TEMP_FOLDER
-#cd $BACKUP_TEMP_FOLDER
+#set -x
 
 echo `date +%Y-%m-%dT%H:%M:%S`" Clear all snapshots..."
 nodetool clearsnapshot
@@ -65,13 +53,9 @@ do
         tablename=$(echo "$snap" | sed -r 's/.*\/(.*)-[a-f0-9]{32}\/snapshots\/[0-9]{13}/\1/')
         echo `date +%Y-%m-%dT%H:%M:%S`" snap folder:[$snap] tablename:[$tablename]"
         REMOTEFULLPATH="$REMOTEFOLDER/`hostname`/$BACKUPDATE/$keyspacename"
-        #echo `date +%Y-%m-%dT%H:%M:%S`" Move [$snap] to [$BACKUP_TEMP_FOLDER$tablename]"
-        #mv "$snap" "$BACKUP_TEMP_FOLDER$tablename"
         ssh $REMOTEHOST "mkdir -p $REMOTEFULLPATH"
         echo `date +%Y-%m-%dT%H:%M:%S`" tar -C $snap -cf - . | ssh $REMOTEHOST 'pbzip2 -p2 > $REMOTEFULLPATH/$tablename.tbz2'"
-        #cd $BACKUP_TEMP_FOLDER
         tar -C "$snap" -cf - . | ssh $REMOTEHOST "pbzip2 -p2 > $REMOTEFULLPATH/$tablename.tbz2"
-        #rm -rf "$BACKUP_TEMP_FOLDER$tablename"
       fi
     done
   done
