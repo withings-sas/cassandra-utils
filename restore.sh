@@ -90,10 +90,7 @@ for keyspacename in $DBS; do
         if [ ! -z $tablefullpath -a ! -z $table ]; then
           echo "table:[$table] "$BACKUP_FULLPATH" TO "$tablefullpath
           rm -f "$tablefullpath/*"
-          cd $tablefullpath
-          tar -xzf $BACKUP_FULLPATH
-          mv $table/* .
-          rmdir $table
+          tar -C "$tablefullpath" -xjf $BACKUP_FULLPATH
         fi
       fi
     fi
