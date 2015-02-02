@@ -54,8 +54,8 @@ do
         echo `date +%Y-%m-%dT%H:%M:%S`" snap folder:[$snap] tablename:[$tablename]"
         REMOTEFULLPATH="$REMOTEFOLDER/`hostname`/$BACKUPDATE/$keyspacename"
         ssh $REMOTEHOST "mkdir -p $REMOTEFULLPATH"
-        echo `date +%Y-%m-%dT%H:%M:%S`" tar -C $snap -cf - . | ssh $REMOTEHOST 'pbzip2 -p2 > $REMOTEFULLPATH/$tablename.tbz2'"
-        tar -C "$snap" -cf - . | ssh $REMOTEHOST "pbzip2 -p2 > $REMOTEFULLPATH/$tablename.tbz2"
+        echo `date +%Y-%m-%dT%H:%M:%S`" tar -C $snap -cf - . | pbzip2 -p2 | ssh $REMOTEHOST 'cat > $REMOTEFULLPATH/$tablename.tbz2'"
+        tar -C "$snap" -cf - . | pbzip2 -p2 | ssh $REMOTEHOST "cat > $REMOTEFULLPATH/$tablename.tbz2"
       fi
     done
   done
