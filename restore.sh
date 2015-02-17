@@ -55,9 +55,10 @@ fi
 
 if [ ! -z "$TRIGGER_FILE" ]; then
   echo "Checking trigger file [$TRIGGER_FILE]"
-  if [ -f "$TRIGGER_FILE" ]; then
-    BACKUP_DATE=$(cat $TRIGGER_FILE)
-    rm $TRIGGER_FILE
+  ssh $REMOTE_HOST "stat $TRIGGER_FILE >/dev/null 2>&1"
+  if [ $? -eq 0 ]; then
+    BACKUP_DATE=$(ssh $REMOTE_HOST "cat $TRIGGER_FILE")
+    ssh $REMOTE_HOST "rm $TRIGGER_FILE"
     echo "Found trigger file with content:[$BACKUP_DATE]"
   else
     echo "Trigger file not found"
@@ -96,6 +97,10 @@ for keyspacename in $DBS; do
     fi
   done
 done
+
+cd /var/lib/cassandra
+rm -rf /var/lib/cassandra/commitlog/*
+rm -rf data/system/sstable_activity-* data/system/p* data/system/local-* data/system/compaction* data/system/batchlog* data/system/range_xfers*
 
 service cassandra start
 
