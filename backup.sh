@@ -36,6 +36,15 @@ fi
 
 #set -x
 
+# Backup schema
+echo `date +%Y-%m-%dT%H:%M:%S`" Backup schema..."
+for KEYSPACE in $(echo "DESCRIBE KEYSPACES;" | cqlsh | sed '/^$/d' | xargs); do
+  echo `date +%Y-%m-%dT%H:%M:%S`" Backup schema of keyspace [$KEYSPACE]..."
+  REMOTEFULLPATHSCHEMA="$REMOTEFOLDER/`hostname`/$BACKUPDATE/$KEYSPACE"
+  ssh $REMOTEHOST "mkdir -p $REMOTEFULLPATHSCHEMA"
+  echo "DESCRIBE KEYSPACE;" | cqlsh -k $KEYSPACE | ssh $REMOTEHOST "cat > $REMOTEFULLPATHSCHEMA/schema_$KEYSPACE.cql"
+done
+
 echo `date +%Y-%m-%dT%H:%M:%S`" Clear all snapshots..."
 nodetool clearsnapshot
 
