@@ -98,9 +98,10 @@ for keyspacename in $DBS; do
   done
 done
 
-cd /var/lib/cassandra
 rm -rf /var/lib/cassandra/commitlog/*
-rm -rf data/system/sstable_activity-* data/system/p* data/system/local-* data/system/compaction* data/system/batchlog* data/system/range_xfers*
+rm -rf /var/lib/cassandra/saved_caches/*
+#cd /var/lib/cassandra
+#rm -rf data/system/sstable_activity-* data/system/p* data/system/local-* data/system/compaction* data/system/batchlog* data/system/range_xfers*
 
 service cassandra start
 
