@@ -90,7 +90,7 @@ for keyspacename in $DBS; do
       if [ -f $BACKUP_FULLPATH ]; then
         if [ ! -z $tablefullpath -a ! -z $table ]; then
           echo "table:[$table] "$BACKUP_FULLPATH" TO "$tablefullpath
-          rm -f "$tablefullpath/*"
+          find "$tablefullpath/" -type f -delete
           tar -C "$tablefullpath" -xjf $BACKUP_FULLPATH
         fi
       fi
