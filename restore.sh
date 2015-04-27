@@ -111,6 +111,10 @@ service cassandra start
 sleep 5
 
 for keyspacename in $DBS; do
+  if [ $keyspacename = "system" ]; then
+    echo "Skip keyspace [$keyspacename]"
+    continue
+  fi
   for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
     tablepath=`basename $tablefullpath`
     if [[ $tablepath =~ [a-z0-9_-]+-[a-f0-9]{32} ]]; then
