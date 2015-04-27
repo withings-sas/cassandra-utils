@@ -90,12 +90,12 @@ for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
     table=$(echo $tablepath | sed -r 's/([a-z0-9_-]+)-[a-f0-9]{32}/\1/')
     if [ $table = "schema_columnfamilies" -o $table = "schema_columns" ]; then
       echo "will restore table [$table]"
-      #BACKUP_FULLPATH=$BACKUP_PATH"/"$BACKUP_DATE"/"$keyspacename"/"$table".tbz2"
+      BACKUP_FULLPATH=$BACKUP_DATE"/"$keyspacename"/"$table".tbz2"
       #if [ -f $BACKUP_FULLPATH ]; then
       if [ ! -z $tablefullpath -a ! -z $table ]; then
           echo "table:[$table] "$BACKUP_FULLPATH" TO "$tablefullpath
           find "$tablefullpath/" -type f -delete
-          ssh $REMOTE_HOST "cat $REMOTE_PATH/$BACKUP_HOST/$BACKUP_DATE/$keyspacename/$table.tbz2" | tar -C "$tablefullpath" -xjf -
+          ssh $REMOTE_HOST "cat $REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH" | tar -C "$tablefullpath" -xjf -
       fi
     else
       echo "do not restore table [$table]"
@@ -119,17 +119,17 @@ for keyspacename in $DBS; do
     tablepath=`basename $tablefullpath`
     if [[ $tablepath =~ [a-z0-9_-]+-[a-f0-9]{32} ]]; then
       table=$(echo $tablepath | sed -r 's/([a-z0-9_-]+)-[a-f0-9]{32}/\1/')
-      #BACKUP_FULLPATH=$BACKUP_PATH"/"$BACKUP_DATE"/"$keyspacename"/"$table".tbz2"
+      BACKUP_FULLPATH=$BACKUP_DATE"/"$keyspacename"/"$table".tbz2"
       #if [ -f $BACKUP_FULLPATH ]; then
       if [ ! -z $tablefullpath -a ! -z $table ]; then
           echo "table:[$table] "$BACKUP_FULLPATH" TO "$tablefullpath
           find "$tablefullpath/" -type f -delete
-          ssh $REMOTE_HOST "cat $REMOTE_PATH/$BACKUP_HOST/$BACKUP_DATE/$keyspacename/$table.tbz2" | tar -C "$tablefullpath" -xjf -
+          ssh $REMOTE_HOST "cat $REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH" | tar -C "$tablefullpath" -xjf -
+          # Loads newly placed SSTables
+          nodetool refresh $keyspacename $table
       fi
     fi
   done
-  # Loads newly placed SSTables
-  nodetool refresh
 done
 
 #rm -rf /var/lib/cassandra/commitlog/*
