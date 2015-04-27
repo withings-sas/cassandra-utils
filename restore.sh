@@ -66,44 +66,71 @@ if [ ! -z "$TRIGGER_FILE" ]; then
   fi
 fi
 
-mkdir -p "$BACKUP_PATH/$BACKUP_DATE/"
-SOURCE_FULLPATH="$REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/$BACKUP_DATE/"
-echo "rsync from [$SOURCE_FULLPATH] to [$BACKUP_PATH]"
-for keyspacename in $DBS; do
-  rsync -az --progress $SOURCE_FULLPATH$keyspacename"/" "$BACKUP_PATH/$BACKUP_DATE/$keyspacename/"
-  if [ $? -ne 0 ]; then
-    echo "Error on rsync"
-    exit
-  fi
-done
+#mkdir -p "$BACKUP_PATH/$BACKUP_DATE/"
+#SOURCE_FULLPATH="$REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/$BACKUP_DATE/"
+#echo "rsync from [$SOURCE_FULLPATH] to [$BACKUP_PATH]"
+#for keyspacename in $DBS; do
+#  rsync -az --progress $SOURCE_FULLPATH$keyspacename"/" "$BACKUP_PATH/$BACKUP_DATE/$keyspacename/"
+#  if [ $? -ne 0 ]; then
+#    echo "Error on rsync"
+#    exit
+#  fi
+#done
 
 # Real reload
 service cassandra stop
-killall java
+sleep 1
+pidof java && killall java
+
+# Restore system tables (only a few)
+keyspacename="system"
+for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
+  tablepath=`basename $tablefullpath`
+  if [[ $tablepath =~ [a-z0-9_-]+-[a-f0-9]{32} ]]; then
+    table=$(echo $tablepath | sed -r 's/([a-z0-9_-]+)-[a-f0-9]{32}/\1/')
+    if [ $table = "schema_columnfamilies" -o $table = "schema_columns" ]; then
+      echo "will restore table [$table]"
+      #BACKUP_FULLPATH=$BACKUP_PATH"/"$BACKUP_DATE"/"$keyspacename"/"$table".tbz2"
+      #if [ -f $BACKUP_FULLPATH ]; then
+      if [ ! -z $tablefullpath -a ! -z $table ]; then
+          echo "table:[$table] "$BACKUP_FULLPATH" TO "$tablefullpath
+          find "$tablefullpath/" -type f -delete
+          ssh $REMOTE_HOST "cat $REMOTE_PATH/$BACKUP_HOST/$BACKUP_DATE/$keyspacename/$table.tbz2" | tar -C "$tablefullpath" -xjf -
+      fi
+    else
+      echo "do not restore table [$table]"
+    fi
+  fi
+done
+
+rm -rf /var/lib/cassandra/commitlog/*
+rm -rf /var/lib/cassandra/saved_caches/*
+service cassandra start
+
+# Wait for cassandra to start
+sleep 5
 
 for keyspacename in $DBS; do
   for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
     tablepath=`basename $tablefullpath`
     if [[ $tablepath =~ [a-z0-9_-]+-[a-f0-9]{32} ]]; then
       table=$(echo $tablepath | sed -r 's/([a-z0-9_-]+)-[a-f0-9]{32}/\1/')
-      BACKUP_FULLPATH=$BACKUP_PATH"/"$BACKUP_DATE"/"$keyspacename"/"$table".tbz2"
-      if [ -f $BACKUP_FULLPATH ]; then
-        if [ ! -z $tablefullpath -a ! -z $table ]; then
+      #BACKUP_FULLPATH=$BACKUP_PATH"/"$BACKUP_DATE"/"$keyspacename"/"$table".tbz2"
+      #if [ -f $BACKUP_FULLPATH ]; then
+      if [ ! -z $tablefullpath -a ! -z $table ]; then
           echo "table:[$table] "$BACKUP_FULLPATH" TO "$tablefullpath
           find "$tablefullpath/" -type f -delete
-          tar -C "$tablefullpath" -xjf $BACKUP_FULLPATH
-        fi
+          ssh $REMOTE_HOST "cat $REMOTE_PATH/$BACKUP_HOST/$BACKUP_DATE/$keyspacename/$table.tbz2" | tar -C "$tablefullpath" -xjf -
       fi
     fi
   done
+  # Loads newly placed SSTables
+  nodetool refresh
 done
 
-rm -rf /var/lib/cassandra/commitlog/*
-rm -rf /var/lib/cassandra/saved_caches/*
-#cd /var/lib/cassandra
-#rm -rf data/system/sstable_activity-* data/system/p* data/system/local-* data/system/compaction* data/system/batchlog* data/system/range_xfers*
-
-service cassandra start
+#rm -rf /var/lib/cassandra/commitlog/*
+#rm -rf /var/lib/cassandra/saved_caches/*
+#service cassandra start
 
 if [ $CLEANUP = "yes" ]; then
   echo "Final cleanup of [$BACKUP_PATH/$BACKUP_DATE]"
