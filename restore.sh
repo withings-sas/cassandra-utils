@@ -66,6 +66,11 @@ if [ ! -z "$TRIGGER_FILE" ]; then
   fi
 fi
 
+if [[ ! `hostname` == *"casbkp"* ]]; then
+  echo "not a backup machine, do not run this script here"
+  exit 1
+fi
+
 #mkdir -p "$BACKUP_PATH/$BACKUP_DATE/"
 #SOURCE_FULLPATH="$REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/$BACKUP_DATE/"
 #echo "rsync from [$SOURCE_FULLPATH] to [$BACKUP_PATH]"
@@ -90,53 +95,58 @@ for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
     table=$(echo $tablepath | sed -r 's/([a-z0-9_-]+)-[a-f0-9]{32}/\1/')
     if [ $table = "schema_columnfamilies" -o $table = "schema_columns" ]; then
       echo "will restore table [$table]"
-      BACKUP_FULLPATH=$BACKUP_DATE"/"$keyspacename"/"$table".tbz2"
+      BACKUP_FULLPATH=$BACKUP_DATE"/"$keyspacename"/"$table"*.tbz2"
       #if [ -f $BACKUP_FULLPATH ]; then
       if [ ! -z $tablefullpath -a ! -z $table ]; then
           echo "table:[$table] "$BACKUP_FULLPATH" TO "$tablefullpath
           find "$tablefullpath/" -type f -delete
           ssh $REMOTE_HOST "cat $REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH" | tar -C "$tablefullpath" -xjf -
       fi
-    else
-      echo "do not restore table [$table]"
+    #else
+    #  echo "do not restore table [$table]"
     fi
   fi
 done
-
-rm -rf /var/lib/cassandra/commitlog/*
-rm -rf /var/lib/cassandra/saved_caches/*
-service cassandra start
-
-# Wait for cassandra to start
-sleep 5
 
 for keyspacename in $DBS; do
   if [ $keyspacename = "system" ]; then
     echo "Skip keyspace [$keyspacename]"
     continue
   fi
-  for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
-    tablepath=`basename $tablefullpath`
-    if [[ $tablepath =~ [a-z0-9_-]+-[a-f0-9]{32} ]]; then
-      table=$(echo $tablepath | sed -r 's/([a-z0-9_-]+)-[a-f0-9]{32}/\1/')
-      BACKUP_FULLPATH=$BACKUP_DATE"/"$keyspacename"/"$table".tbz2"
-      #if [ -f $BACKUP_FULLPATH ]; then
-      if [ ! -z $tablefullpath -a ! -z $table ]; then
-          echo "table:[$table] "$BACKUP_FULLPATH" TO "$tablefullpath
-          find "$tablefullpath/" -type f -delete
-          ssh $REMOTE_HOST "cat $REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH" | tar -C "$tablefullpath" -xjf -
-          # Loads newly placed SSTables
-          nodetool refresh $keyspacename $table
-      fi
+  ksremotefullpath=$REMOTE_PATH/$BACKUP_HOST/$BACKUP_DATE/$keyspacename
+
+  ssh $REMOTE_HOST "stat $ksremotefullpath >/dev/null 2>&1"
+  if [ $? -eq 0 ]; then
+    # There is backup available for this KS, purge it
+    echo "Delete $keyspacename data"
+    rm -rf /var/lib/cassandra/data/$keyspacename
+  fi
+
+  cfs=$(ssh $REMOTE_HOST "ls $ksremotefullpath/")
+  for cf in $cfs; do
+    cf_ext="${cf##*.}"
+    cf_name="${cf%.*}"
+    #echo "CF:"$cf_name" EXT:"$cf_ext
+    if [ $cf_ext = "tbz2" ]; then
+      tablefullpath=/var/lib/cassandra/data/$keyspacename/$cf_name
+      mkdir -p $tablefullpath
+      echo "Extract $ksremotefullpath/$cf into $tablefullpath"
+      ssh $REMOTE_HOST "cat $ksremotefullpath/$cf" | tar -C "$tablefullpath" -xjf -
+      chown cassandra:cassandra -R $tablefullpath
     fi
   done
+  # Loads newly placed SSTables
+  #nodetool refresh $keyspacename $table
 done
 
-#rm -rf /var/lib/cassandra/commitlog/*
-#rm -rf /var/lib/cassandra/saved_caches/*
-#service cassandra start
+rm -rf /var/lib/cassandra/commitlog/*
+rm -rf /var/lib/cassandra/saved_caches/*
 
-if [ $CLEANUP = "yes" ]; then
-  echo "Final cleanup of [$BACKUP_PATH/$BACKUP_DATE]"
-  rm -rf "$BACKUP_PATH/$BACKUP_DATE"
-fi
+service cassandra start
+sleep 10
+nodetool disableautocompaction
+
+#if [ $CLEANUP = "yes" ]; then
+#  echo "Final cleanup of [$BACKUP_PATH/$BACKUP_DATE]"
+#  rm -rf "$BACKUP_PATH/$BACKUP_DATE"
+#fi
