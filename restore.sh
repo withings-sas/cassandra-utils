@@ -142,9 +142,12 @@ done
 rm -rf /var/lib/cassandra/commitlog/*
 rm -rf /var/lib/cassandra/saved_caches/*
 
+echo "Starting cassandra..."
 service cassandra start
 sleep 10
+echo "Disabling auto compaction..."
 nodetool disableautocompaction
+echo "All done"
 
 #if [ $CLEANUP = "yes" ]; then
 #  echo "Final cleanup of [$BACKUP_PATH/$BACKUP_DATE]"
