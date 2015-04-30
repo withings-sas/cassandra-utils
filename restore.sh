@@ -93,7 +93,7 @@ for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
   tablepath=`basename $tablefullpath`
   if [[ $tablepath =~ [a-z0-9_-]+-[a-f0-9]{32} ]]; then
     table=$(echo $tablepath | sed -r 's/([a-z0-9_-]+)-[a-f0-9]{32}/\1/')
-    if [ $table = "schema_columnfamilies" -o $table = "schema_columns" ]; then
+    if [ $table = "schema_columnfamilies" -o $table = "schema_columns" -o $table = "schema_keyspaces" ]; then
       echo "will restore table [$table]"
       BACKUP_FULLPATH=$BACKUP_DATE"/"$keyspacename"/"$table"*.tbz2"
       #if [ -f $BACKUP_FULLPATH ]; then
