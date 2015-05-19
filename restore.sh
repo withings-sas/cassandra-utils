@@ -3,6 +3,9 @@
 BACKUP_PATH=/var/lib/cassandra/backup_data
 CLEANUP="no"
 
+VIGILANTE_ID=$(echo "cassandra backup $HOSTNAME" | sha1sum | cut -b-10)
+TS_START=$(date +%s)
+
 while getopts "s:d:t:k:r:f:c:" opt; do
   case $opt in
     s)
@@ -99,6 +102,7 @@ for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
       #if [ -f $BACKUP_FULLPATH ]; then
       if [ ! -z $tablefullpath -a ! -z $table ]; then
           echo "table:[$table] "$BACKUP_FULLPATH" TO "$tablefullpath
+	  MESSAGE+="Restoring $keyspacename:$table"$'\n'
           find "$tablefullpath/" -type f -delete
           ssh $REMOTE_HOST "cat $REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH" | tar -C "$tablefullpath" -xjf -
       fi
@@ -131,6 +135,7 @@ for keyspacename in $DBS; do
       tablefullpath=/var/lib/cassandra/data/$keyspacename/$cf_name
       mkdir -p $tablefullpath
       echo "Extract $ksremotefullpath/$cf into $tablefullpath"
+      MESSAGE+="Restoring $keyspacename:$cf_name"$'\n'
       ssh $REMOTE_HOST "cat $ksremotefullpath/$cf" | tar -C "$tablefullpath" -xjf -
       chown cassandra:cassandra -R $tablefullpath
     fi
@@ -153,3 +158,13 @@ echo "All done"
 #  echo "Final cleanup of [$BACKUP_PATH/$BACKUP_DATE]"
 #  rm -rf "$BACKUP_PATH/$BACKUP_DATE"
 #fi
+
+pgrep -f org.apache.cassandra.service.CassandraDaemon > /dev/null
+STATUS=$?
+
+TS_END=$(date +%s)
+DURATION=$(( $TS_END - $TS_START ))
+
+curl --data "status=$STATUS&duration=$DURATION&message=$MESSAGE" http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
+
+
