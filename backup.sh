@@ -2,6 +2,8 @@
 
 BACKUPDATE=$(date +%Y%m%d_%H%M%S)
 BASEPATH=/var/lib/cassandra/data
+VIGILANTE_ID=$(echo "cassandra restore $HOSTNAME" | sha1sum | cut -b-10)
+TS_START=$(date +%s)
 
 while getopts "k:p:r:f:n:" opt; do
   case $opt in
@@ -64,6 +66,7 @@ do
         columnfamily=$(echo "$snap" | sed -r 's/.*\/(.*-[a-f0-9]{32})\/snapshots\/[0-9]{13}/\1/')
         #echo `date +%Y-%m-%dT%H:%M:%S`" snap folder:[$snap] columnfamily:[$columnfamily]"
         echo `date +%Y-%m-%dT%H:%M:%S`" tar -C $snap -cf - . | pbzip2 -p8 | ssh $REMOTEHOST 'cat > $REMOTEFULLPATH/$columnfamily.tbz2'"
+        MESSAGE+="Backuping $columnfamily.tbz2"$'\n'
         tar -C "$snap" -cf - . | pbzip2 -p8 | ssh $REMOTEHOST "cat > $REMOTEFULLPATH/$columnfamily.tbz2"
       fi
     done
@@ -80,3 +83,10 @@ if [ ! $NOTIFYFILE = "" ]; then
 fi
 
 echo `date +%Y-%m-%dT%H:%M:%S`" ALL DONE"
+
+TS_END=$(date +%s)
+DURATION=$(( $TS_END - $TS_START ))
+
+curl --data "status=0&duration=$DURATION&message=$MESSAGE" http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
+
+
