@@ -102,7 +102,7 @@ for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
       #if [ -f $BACKUP_FULLPATH ]; then
       if [ ! -z $tablefullpath -a ! -z $table ]; then
           echo "table:[$table] "$BACKUP_FULLPATH" TO "$tablefullpath
-	  MESSAGE+="Restoring $keyspacename:$table"$'\n'
+	  MESSAGE+="Restoring $keyspacename:${table%-*}"$'\n'
           find "$tablefullpath/" -type f -delete
           ssh $REMOTE_HOST "cat $REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH" | tar -C "$tablefullpath" -xjf -
       fi

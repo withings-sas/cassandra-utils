@@ -66,7 +66,7 @@ do
         columnfamily=$(echo "$snap" | sed -r 's/.*\/(.*-[a-f0-9]{32})\/snapshots\/[0-9]{13}/\1/')
         #echo `date +%Y-%m-%dT%H:%M:%S`" snap folder:[$snap] columnfamily:[$columnfamily]"
         echo `date +%Y-%m-%dT%H:%M:%S`" tar -C $snap -cf - . | pbzip2 -p8 | ssh $REMOTEHOST 'cat > $REMOTEFULLPATH/$columnfamily.tbz2'"
-        MESSAGE+="Backuping $columnfamily.tbz2"$'\n'
+        MESSAGE+="Backuping ${columnfamily%-*}"$'\n'
         tar -C "$snap" -cf - . | pbzip2 -p8 | ssh $REMOTEHOST "cat > $REMOTEFULLPATH/$columnfamily.tbz2"
       fi
     done
@@ -82,7 +82,12 @@ if [ ! $NOTIFYFILE = "" ]; then
   ssh $REMOTEHOST "echo $BACKUPDATE > $NOTIFYFILE"
 fi
 
+size=$(ssh $REMOTEHOST "du -sh $REMOTEFOLDER/`hostname`/$BACKUPDATE")
+echo Backup size $size
+
 echo `date +%Y-%m-%dT%H:%M:%S`" ALL DONE"
+MESSAGE+=$'\n'$'\n'Backup Size : $size
+
 
 TS_END=$(date +%s)
 DURATION=$(( $TS_END - $TS_START ))
