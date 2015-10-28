@@ -75,7 +75,7 @@ do
         columnfamily=$(echo "$snap" | sed -r 's/.*\/(.*-[a-f0-9]{32})\/snapshots\/[0-9]{13}/\1/')
         if [ $METHOD = "rsync" ]; then
           # rsync
-          CMD="rsync -a $snap/ $REMOTEHOST:$REMOTEFULLPATH/$columnfamily/"
+          CMD="rsync -a --delete $snap/ $REMOTEHOST:$REMOTEFULLPATH/$columnfamily/"
           echo `date +%Y-%m-%dT%H:%M:%S`" "$CMD
           MESSAGE+=$(date +%Y-%m-%dT%H:%M:%S)" Backuping ${columnfamily%-*}"$'\n'
           $CMD
