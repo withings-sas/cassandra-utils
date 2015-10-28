@@ -113,11 +113,11 @@ if [ ! "$VIGILANTE_ID" = "" ]; then
   TS_END=$(date +%s)
   DURATION=$(( $TS_END - $TS_START ))
 
-  echo "message="$MESSAGE > /tmp/vigilante.message
+  echo -e "message=$MESSAGE" > /tmp/vigilante.message
 
-  curl --data "status=$STATUS&duration=$DURATION" --data @/tmp/vigilante.message http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
+  curl --data "status=$STATUS&duration=$DURATION" --data-binary @/tmp/vigilante.message http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
 
-  #rm /tmp/vigilante.message
+  rm /tmp/vigilante.message
 fi
 
 echo `date +%Y-%m-%dT%H:%M:%S`" ALL DONE"
