@@ -75,8 +75,9 @@ do
         columnfamily=$(echo "$snap" | sed -r 's/.*\/(.*-[a-f0-9]{32})\/snapshots\/[0-9]{13}/\1/')
         if [ $METHOD = "rsync" ]; then
           # rsync
-          CMD="rsync -av $snap/ $REMOTEHOST:$REMOTEFULLPATH/$columnfamily/"
+          CMD="rsync -a $snap/ $REMOTEHOST:$REMOTEFULLPATH/$columnfamily/"
           echo `date +%Y-%m-%dT%H:%M:%S`" "$CMD
+          MESSAGE+=$(date +%Y-%m-%dT%H:%M:%S)" Backuping ${columnfamily%-*}"$'\n'
           $CMD
         else
           # tar
@@ -105,13 +106,18 @@ else
 fi
 echo Backup size $size
 
-echo `date +%Y-%m-%dT%H:%M:%S`" ALL DONE"
 MESSAGE+=$'\n'$'\n'"Backup Size : "$size
 
 if [ ! "$VIGILANTE_ID" = "" ]; then
+  echo `date +%Y-%m-%dT%H:%M:%S`" Notify Vigilante"
   TS_END=$(date +%s)
   DURATION=$(( $TS_END - $TS_START ))
 
-  curl --data "status=0&duration=$DURATION&message=$MESSAGE" http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
+  echo "message="$MESSAGE > /tmp/vigilante.message
+
+  curl --data "status=$STATUS&duration=$DURATION" --data @/tmp/vigilante.message http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
+
+  #rm /tmp/vigilante.message
 fi
 
+echo `date +%Y-%m-%dT%H:%M:%S`" ALL DONE"
