@@ -47,7 +47,7 @@ fi
 echo `date +%Y-%m-%dT%H:%M:%S`" Backup schema..."
 for KEYSPACE in $(echo "DESCRIBE KEYSPACES;" | cqlsh | sed '/^$/d' | xargs); do
   echo `date +%Y-%m-%dT%H:%M:%S`" Backup schema of keyspace [$KEYSPACE]..."
-  REMOTEFULLPATHSCHEMA="$REMOTEFOLDER/`hostname`/$BACKUPDATE/$KEYSPACE"
+  REMOTEFULLPATHSCHEMA="$REMOTEFOLDER/`hostname`/schema/$BACKUPDATE/$KEYSPACE"
   ssh $REMOTEHOST "mkdir -p $REMOTEFULLPATHSCHEMA"
   echo "DESCRIBE KEYSPACE;" | cqlsh -k $KEYSPACE | ssh $REMOTEHOST "cat > $REMOTEFULLPATHSCHEMA/schema_$KEYSPACE.cql"
 done
