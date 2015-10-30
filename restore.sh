@@ -134,7 +134,7 @@ for keyspacename in $DBS; do
     MESSAGE+="Restoring $keyspacename:$cf_name"$'\n'
     if [ $METHOD = "rsync" ]; then
       echo "Copy $ksremotefullpath/$cf into $tablefullpath"
-      CMD="rsync -az $REMOTE_HOST:$ksremotefullpath/$cf/ $tablefullpath/"
+      CMD="rsync -a $REMOTE_HOST:$ksremotefullpath/$cf/ $tablefullpath/"
       echo "  "$CMD
       $CMD
     else
