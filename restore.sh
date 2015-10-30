@@ -95,7 +95,7 @@ for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
 	MESSAGE+="Restoring $keyspacename:${table%-*}"$'\n'
         find "$tablefullpath/" -type f -delete
         if [ $METHOD = "rsync" ]; then
-          CMD="rsync -az $REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH/ $tablefullpath/"
+          CMD="rsync -a $REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH/ $tablefullpath/"
           echo "  "$CMD
           $CMD
         else
