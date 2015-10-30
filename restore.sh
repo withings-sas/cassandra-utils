@@ -118,10 +118,12 @@ for keyspacename in $DBS; do
   fi
 
   ssh $REMOTE_HOST "stat $ksremotefullpath >/dev/null 2>&1"
-  if [ $? -eq 0 ]; then
-    # There is backup available for this KS, purge it
-    echo "Delete $keyspacename data"
-    rm -rf /var/lib/cassandra/data/$keyspacename
+  if [ ! $METHOD = "rsync" ]; then
+    if [ $? -eq 0 ]; then
+      # There is backup available for this KS, purge it
+      echo "Delete $keyspacename data"
+      rm -rf /var/lib/cassandra/data/$keyspacename
+    fi
   fi
 
   cfs=$(ssh $REMOTE_HOST "ls $ksremotefullpath/")
