@@ -85,7 +85,7 @@ for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
     if [ $table = "schema_columnfamilies" -o $table = "schema_columns" -o $table = "schema_keyspaces" ]; then
       echo "will restore table [$table]"
       if [ $METHOD = "rsync" ]; then
-        BACKUP_FULLPATH="data/day."$(date -d"$BACKUP_DATE" +%w)"/"$keyspacename"/"$table"*"
+        BACKUP_FULLPATH="data/"$BACKUP_DATE"/"$keyspacename"/"$table"*"
       else
         BACKUP_FULLPATH=$BACKUP_DATE"/"$keyspacename"/"$table"*.tbz2"
       fi
@@ -112,9 +112,9 @@ for keyspacename in $DBS; do
     continue
   fi
   if [ $METHOD = "rsync" ]; then
-    ksremotefullpath=$REMOTE_PATH/$BACKUP_HOST"/data/day."$(date -d"$BACKUP_DATE" +%w)/$keyspacename
+    ksremotefullpath=$REMOTE_PATH"/"$BACKUP_HOST"/data/"$BACKUP_DATE"/"$keyspacename
   else
-    ksremotefullpath=$REMOTE_PATH/$BACKUP_HOST/$BACKUP_DATE/$keyspacename
+    ksremotefullpath=$REMOTE_PATH"/"$BACKUP_HOST"/"$BACKUP_DATE"/"$keyspacename
   fi
 
   ssh $REMOTE_HOST "stat $ksremotefullpath >/dev/null 2>&1"
