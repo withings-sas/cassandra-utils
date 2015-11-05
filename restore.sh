@@ -1,9 +1,6 @@
 #!/bin/bash
 
-VIGILANTE_ID=$(echo "cassandra backup $HOSTNAME" | sha1sum | cut -b-10)
-TS_START=$(date +%s)
-
-while getopts "s:d:t:k:r:f:m:" opt; do
+while getopts "s:d:t:k:r:f:m:v:" opt; do
   case $opt in
     s)
       BACKUP_HOST=$OPTARG
@@ -26,12 +23,19 @@ while getopts "s:d:t:k:r:f:m:" opt; do
     m)
       METHOD=$OPTARG
       ;;
+    v)
+      VIGILANTE_ID=$OPTARG
+      ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
       ;;
   esac
 done
 
+if [ "$VIGILANTE_ID" = "" ]; then
+  echo "Missing required vigilante id (-v)"
+  exit
+fi
 if [ "$BACKUP_HOST" = "" ]; then
   echo "Missing required source host (-s)"
   exit
@@ -70,6 +74,8 @@ if [[ ! `hostname` == *"casbkp"* ]]; then
   echo "not a backup machine, do not run this script here"
   exit 1
 fi
+
+curl "http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID?start" &> /dev/null
 
 # Real reload
 service cassandra stop
@@ -162,9 +168,5 @@ echo "All done"
 pgrep -f org.apache.cassandra.service.CassandraDaemon > /dev/null
 STATUS=$?
 
-TS_END=$(date +%s)
-DURATION=$(( $TS_END - $TS_START ))
-
-curl --data "status=$STATUS&duration=$DURATION&message=$MESSAGE" http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
-
+curl --data "status=$STATUS&message=$MESSAGE" http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
 
