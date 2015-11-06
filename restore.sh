@@ -165,8 +165,9 @@ echo "Disabling auto compaction..."
 nodetool disableautocompaction
 echo "All done"
 
-pgrep -f org.apache.cassandra.service.CassandraDaemon > /dev/null
-STATUS=$?
+#pgrep -f org.apache.cassandra.service.CassandraDaemon > /dev/null
+#STATUS=$?
+STATUS=0
 
 curl --data "status=$STATUS&message=$MESSAGE" http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
 
