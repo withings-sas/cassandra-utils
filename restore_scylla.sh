@@ -78,6 +78,7 @@ fi
 #curl "http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID?start" &> /dev/null
 
 # Real reload
+service scylla-jmx stop
 service scylla-server stop
 sleep 1
 
@@ -160,6 +161,8 @@ find /var/lib/scylla -name manifest.json -delete
 
 echo "Starting scylla..."
 service scylla-server start
+sleep 5
+service scylla-jmx start
 
 STATUS=0
 
