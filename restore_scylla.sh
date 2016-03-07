@@ -75,12 +75,13 @@ if [[ ! `hostname` == *"casbkp"* ]]; then
   exit 1
 fi
 
-#curl "http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID?start" &> /dev/null
+curl "http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID?start" &> /dev/null
 
 # Real reload
-service scylla-jmx stop
-service scylla-server stop
+echo -n "Stopping scylla..."
+/usr/bin/service scylla-server stop
 sleep 1
+echo "Done"
 
 # Restore system tables (only a few)
 keyspacename="system"
@@ -159,12 +160,11 @@ rm -rf /var/lib/scylla/commitlog/*
 rm -rf /var/lib/scylla/saved_caches/*
 find /var/lib/scylla -name manifest.json -delete
 
-echo "Starting scylla..."
-service scylla-server start
-sleep 5
-service scylla-jmx start
+echo -n "Starting scylla..."
+/usr/bin/service scylla-server start
+echo "Done"
 
 STATUS=0
 
-#curl --data "status=$STATUS&message=$MESSAGE" http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
+curl --data "status=$STATUS&message=$MESSAGE" http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
 
