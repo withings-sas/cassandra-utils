@@ -58,14 +58,14 @@ if [ "$REMOTE_PATH" = "" ]; then
 fi
 
 if [ ! -z "$TRIGGER_FILE" ]; then
-  echo "Checking trigger file [$TRIGGER_FILE]"
+  #echo "Checking trigger file [$TRIGGER_FILE]"
   ssh $REMOTE_HOST "stat $TRIGGER_FILE >/dev/null 2>&1"
   if [ $? -eq 0 ]; then
     BACKUP_DATE=$(ssh $REMOTE_HOST "cat $TRIGGER_FILE")
     ssh $REMOTE_HOST "rm $TRIGGER_FILE"
     echo "Found trigger file with content:[$BACKUP_DATE]"
   else
-    echo "Trigger file not found"
+    #echo "Trigger file not found"
     exit
   fi
 fi
@@ -82,6 +82,12 @@ echo -n "Stopping scylla..."
 /usr/bin/service scylla-server stop
 sleep 1
 echo "Done"
+
+ps aux|grep scylla
+killall scylla
+sleep 1
+killall -9 scylla
+ps aux|grep scylla
 
 # Restore system tables (only a few)
 keyspacename="system"
