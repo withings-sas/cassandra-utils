@@ -1,5 +1,7 @@
 #!/bin/bash
 
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 while getopts "s:d:t:k:r:f:m:v:" opt; do
   case $opt in
     s)
@@ -79,7 +81,7 @@ curl "http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID?start" &> /dev/nu
 
 # Real reload
 echo -n "Stopping scylla..."
-/usr/bin/service scylla-server stop
+service scylla-server stop
 sleep 1
 echo "Done"
 
@@ -167,7 +169,7 @@ rm -rf /var/lib/scylla/saved_caches/*
 find /var/lib/scylla -name manifest.json -delete
 
 echo -n "Starting scylla..."
-/usr/bin/service scylla-server start
+service scylla-server start
 echo "Done"
 
 STATUS=0
