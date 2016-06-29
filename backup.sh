@@ -2,7 +2,6 @@
 
 BACKUPDATE=$(date +%Y%m%d_%H%M%S)
 BASEPATH=/var/lib/cassandra/data
-TS_START=$(date +%s)
 
 while getopts "k:p:r:f:n:m:v:" opt; do
   case $opt in
@@ -42,6 +41,10 @@ if [ "$REMOTEHOST" = "" ]; then
 fi
 
 #set -x
+if [ ! "$VIGILANTE_ID" = "" ]; then
+  echo `date +%Y-%m-%dT%H:%M:%S`" Notify Vigilante START"
+  curl -s "http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID?start" &> /dev/null
+fi
 
 # Backup schema
 echo `date +%Y-%m-%dT%H:%M:%S`" Backup schema..."
@@ -110,12 +113,10 @@ MESSAGE+=$'\n'$'\n'"Backup Size : "$size
 
 if [ ! "$VIGILANTE_ID" = "" ]; then
   echo `date +%Y-%m-%dT%H:%M:%S`" Notify Vigilante"
-  TS_END=$(date +%s)
-  DURATION=$(( $TS_END - $TS_START ))
 
   echo -e "message=$MESSAGE" > /tmp/vigilante.message
 
-  curl --data "status=$STATUS&duration=$DURATION" --data-binary @/tmp/vigilante.message http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
+  curl --data "status=$STATUS" --data-binary @/tmp/vigilante.message http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
 
   rm /tmp/vigilante.message
 fi
