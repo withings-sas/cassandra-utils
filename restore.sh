@@ -1,5 +1,7 @@
 #!/bin/bash
 
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 while getopts "s:d:t:k:r:f:m:v:" opt; do
   case $opt in
     s)
