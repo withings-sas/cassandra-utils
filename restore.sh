@@ -109,6 +109,7 @@ for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
         else
           ssh $REMOTE_HOST "cat $REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH" | tar -C "$tablefullpath" -xjf -
         fi
+        chown cassandra: -R $tablefullpath
       fi
     fi
   fi
@@ -153,7 +154,7 @@ for keyspacename in $DBS; do
         ssh $REMOTE_HOST "cat $ksremotefullpath/$cf" | tar -C "$tablefullpath" -xjf -
       fi
     fi
-    chown cassandra:cassandra -R $tablefullpath
+    chown cassandra: -R $tablefullpath
   done
 done
 
