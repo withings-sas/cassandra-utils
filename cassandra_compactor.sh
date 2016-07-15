@@ -47,7 +47,7 @@ for dir in $(find /var/lib/cassandra/data/$keyspace/* -type d| grep -v snapshots
 		continue
 	fi
 
-        [ "$dry_run" -eq 0 -a "$repair" -eq 1 ] && echo "nodetool repair $keyspace $table"
+        [ "$dry_run" -eq 0 -a "$repair" -eq 1 ] && nodetool repair $keyspace $table
 
         size=$(du -sm $dir| cut -f1)
         nb_files=$(find $dir -type f | wc -l)
@@ -58,7 +58,7 @@ for dir in $(find /var/lib/cassandra/data/$keyspace/* -type d| grep -v snapshots
                 continue
         fi
         log "Compacting $table : $size Mo / $nb_files files"
-        [ "$dry_run" -eq 0 ] && echo "nodetool compact $keyspace $table"
+        [ "$dry_run" -eq 0 ] && nodetool compact $keyspace $table
 done
 log "Done"
 
