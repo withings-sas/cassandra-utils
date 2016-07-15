@@ -3,14 +3,18 @@
 dry_run=0
 repair=0
 max_nb_files=100000
+table_pattern=".*"
 
-while getopts "k:m:dr" opt; do
+while getopts "k:t:m:dr" opt; do
   case $opt in
     k)
       keyspace=$OPTARG
       ;;
     m)
       max_nb_files=$OPTARG
+      ;;
+    t)
+      table_pattern=$OPTARG
       ;;
     d)
       dry_run=1
@@ -37,11 +41,16 @@ for dir in $(find /var/lib/cassandra/data/$keyspace/* -type d| grep -v snapshots
         subfolder=$(basename $dir)
         table=${subfolder%-*}
 
+	if [[ $table =~ ^$table_pattern$ ]]; then
+        	log "  table $table nb_files=$nb_files size=$size"
+	else
+		continue
+	fi
+
         [ "$dry_run" -eq 0 -a "$repair" -eq 1 ] && echo "nodetool repair $keyspace $table"
 
         size=$(du -sm $dir| cut -f1)
         nb_files=$(find $dir -type f | wc -l)
-        log "  "$(basename $dir)" nb_files=$nb_files size=$size"
 
         [ $nb_files -lt 1000 ] && continue
         if [ $nb_files -gt $max_nb_files ]; then
