@@ -94,6 +94,8 @@ for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
       echo "will restore table [$table]"
       if [ $METHOD = "rsync" ]; then
         BACKUP_FULLPATH="data/"$BACKUP_DATE"/"$keyspacename"/"$table"*"
+      elif [ $METHOD = "rdiff-backup" ]; then
+	BACKUP_FULLPATH=$keyspacename"/"$table"*"
       else
         BACKUP_FULLPATH=$BACKUP_DATE"/"$keyspacename"/"$table"*.tbz2"
       fi
@@ -102,7 +104,7 @@ for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
         echo "table:[$table] method:[$METHOD] "$BACKUP_FULLPATH" TO "$tablefullpath
 	MESSAGE+="Restoring $keyspacename:${table%-*}"$'\n'
         find "$tablefullpath/" -type f -delete
-        if [ $METHOD = "rsync" ]; then
+        if [ $METHOD = "rsync" ] || [ $METHOD = "rdiff-backup" ]; then
           CMD="rsync -a --delete $REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH/ $tablefullpath/"
           echo "  "$CMD
           $CMD
@@ -122,12 +124,14 @@ for keyspacename in $DBS; do
   fi
   if [ $METHOD = "rsync" ]; then
     ksremotefullpath=$REMOTE_PATH"/"$BACKUP_HOST"/data/"$BACKUP_DATE"/"$keyspacename
+  elif [ $METHOD = "rdiff-backup" ]; then
+    ksremotefullpath=$REMOTE_PATH"/"$BACKUP_HOST"/"$keyspacename
   else
     ksremotefullpath=$REMOTE_PATH"/"$BACKUP_HOST"/"$BACKUP_DATE"/"$keyspacename
   fi
 
   ssh $REMOTE_HOST "stat $ksremotefullpath >/dev/null 2>&1"
-  if [ ! $METHOD = "rsync" ]; then
+  if [ ! $METHOD = "rsync" ] && [ ! $METHOD = "rdiff-backup" ]; then
     if [ $? -eq 0 ]; then
       # There is backup available for this KS, purge it
       echo "Delete $keyspacename data"
@@ -143,7 +147,7 @@ for keyspacename in $DBS; do
     tablefullpath=/var/lib/cassandra/data/$keyspacename/$cf_name
     mkdir -p $tablefullpath
     MESSAGE+="Restoring $keyspacename:$cf_name"$'\n'
-    if [ $METHOD = "rsync" ]; then
+    if [ $METHOD = "rsync" ] || [ $METHOD = "rdiff-backup" ]; then
       echo "Copy $ksremotefullpath/$cf into $tablefullpath"
       CMD="rsync -a --delete $REMOTE_HOST:$ksremotefullpath/$cf/ $tablefullpath/"
       echo "  "$CMD
