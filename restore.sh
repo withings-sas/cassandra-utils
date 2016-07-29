@@ -92,7 +92,7 @@ if [[ ! `hostname` == *"casbkp"* ]]; then
   exit 1
 fi
 
-[ -n "$VIGILANTE_ID"] && curl "http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID?start" &> /dev/null
+[ -n "$VIGILANTE_ID" ] && curl "http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID?start" &> /dev/null
 
 # Real reload
 service cassandra stop
@@ -199,5 +199,5 @@ echo "All done"
 #STATUS=$?
 STATUS=0
 
-[ -n "$VIGILANTE_ID"] && curl --data "status=$STATUS&message=$MESSAGE" http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
+[ -n "$VIGILANTE_ID" ] && curl --data "status=$STATUS&message=$MESSAGE" http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
 
