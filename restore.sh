@@ -109,8 +109,10 @@ for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
       echo "will restore table [$table]"
       if [ $METHOD = "rsync" ]; then
         BACKUP_FULLPATH="data/"$BACKUP_DATE"/"$keyspacename"/"$table"*"
-      elif [ $METHOD = "rdiff-backup" ]; then
-	BACKUP_FULLPATH=$( ssh $REMOTE_HOST "cd $REMOTE_PATH/$BACKUP_HOST; ls -d $keyspacename/$table*" )
+      elif [ $METHOD = "rdiff-backup" -a -z "$INCREMENT_DATE" ]; then
+        BACKUP_FULLPATH="data/"$keyspacename"/"$table"*"
+      elif [ $METHOD = "rdiff-backup" ] && [ -n "$INCREMENT_DATE" ]; then
+        BACKUP_FULLPATH=$( ssh $REMOTE_HOST "cd $REMOTE_PATH/$BACKUP_HOST; ls -d $keyspacename/$table*" )
       else
         BACKUP_FULLPATH=$BACKUP_DATE"/"$keyspacename"/"$table"*.tbz2"
       fi
@@ -119,7 +121,11 @@ for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
         echo "table:[$table] method:[$METHOD] "$BACKUP_FULLPATH" TO "$tablefullpath
 	MESSAGE+="Restoring $keyspacename:${table%-*}"$'\n'
         find "$tablefullpath/" -type f -delete
-        if [ $METHOD = "rsync" ] || [ $METHOD = "rdiff-backup" -a -z "$INCREMENT_DATE" ]; then
+        if [ $METHOD = "rsync" ]; then
+          CMD="rsync -a --delete $REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH/ $tablefullpath/"
+          echo "  "$CMD
+          $CMD
+        elif [ $METHOD = "rdiff-backup" -a -z "$INCREMENT_DATE" ]; then
           CMD="rsync -a --delete $REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH/ $tablefullpath/"
           echo "  "$CMD
           $CMD
@@ -144,7 +150,7 @@ for keyspacename in $DBS; do
   if [ $METHOD = "rsync" ]; then
     ksremotefullpath=$REMOTE_PATH"/"$BACKUP_HOST"/data/"$BACKUP_DATE"/"$keyspacename
   elif [ $METHOD = "rdiff-backup" ]; then
-    ksremotefullpath=$REMOTE_PATH"/"$BACKUP_HOST"/"$keyspacename
+    ksremotefullpath=$REMOTE_PATH"/"$BACKUP_HOST"/data/"$keyspacename
   else
     ksremotefullpath=$REMOTE_PATH"/"$BACKUP_HOST"/"$BACKUP_DATE"/"$keyspacename
   fi
