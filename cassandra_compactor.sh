@@ -1,8 +1,10 @@
 #!/bin/bash
 
+set -u
+
 dry_run=0
 repair=0
-max_nb_files=100000
+max_nb_sstables=10000
 table_pattern=".*"
 
 while getopts "k:t:m:dr" opt; do
@@ -11,7 +13,7 @@ while getopts "k:t:m:dr" opt; do
       keyspace=$OPTARG
       ;;
     m)
-      max_nb_files=$OPTARG
+      max_sstables=$OPTARG
       ;;
     t)
       table_pattern=$OPTARG
@@ -40,24 +42,23 @@ log "Start, keyspace=$keyspace dry_run=$dry_run repair=$repair"
 for dir in $(find /var/lib/cassandra/data/$keyspace/* -type d| grep -v snapshots); do
         subfolder=$(basename $dir)
         table=${subfolder%-*}
+        size=$(du -sm $dir| cut -f1)
+        nb_sstables=$(find $dir -type f -name *Data.db| wc -l)
 
 	if [[ $table =~ ^$table_pattern$ ]]; then
-        	log "  table $table nb_files=$nb_files size=$size"
+        	log "  table $table nb_sstables=$nb_sstables size=${size}Mo, $(( $size/ $nb_sstables))Mo/sstable"
 	else
 		continue
 	fi
 
         [ "$dry_run" -eq 0 -a "$repair" -eq 1 ] && nodetool repair $keyspace $table
 
-        size=$(du -sm $dir| cut -f1)
-        nb_files=$(find $dir -type f | wc -l)
-
-        [ $nb_files -lt 1000 ] && continue
-        if [ $nb_files -gt $max_nb_files ]; then
-                log "     * $table has more than $max_nb_files files : not compacting automatically"
+        [ $nb_sstables -lt 100 ] && continue
+        if [ $nb_sstables -gt $max_nb_sstables ]; then
+                log "     * $table has more than $max_nb_sstables sstables : not compacting automatically"
                 continue
         fi
-        log "Compacting $table : $size Mo / $nb_files files"
+        log "Compacting $table : $size Mo / $nb_sstables sstables"
         [ "$dry_run" -eq 0 ] && nodetool compact $keyspace $table
 done
 log "Done"
