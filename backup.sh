@@ -103,20 +103,19 @@ if [ ! $NOTIFYFILE = "" ]; then
 fi
 
 if [ $METHOD = "rsync" ]; then
-  size=$(ssh $REMOTEHOST "du -sh $REMOTEFOLDER/`hostname`/incremental")
+  SIZE=$(ssh $REMOTEHOST "du -sb $REMOTEFOLDER/`hostname`/incremental | cut -f1")
 else
-  size=$(ssh $REMOTEHOST "du -sh $REMOTEFOLDER/`hostname`/$BACKUPDATE")
+  SIZE=$(ssh $REMOTEHOST "du -sb $REMOTEFOLDER/`hostname`/$BACKUPDATE | cut -f1")
 fi
-echo Backup size $size
 
-MESSAGE+=$'\n'$'\n'"Backup Size : "$size
+MESSAGE+=$'\n'$'\n'"Backup Size : "$SIZE
 
 if [ ! "$VIGILANTE_ID" = "" ]; then
   echo `date +%Y-%m-%dT%H:%M:%S`" Notify Vigilante"
 
   echo -e "message=$MESSAGE" > /tmp/vigilante.message
 
-  curl --data "status=$STATUS" --data-binary @/tmp/vigilante.message http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
+  curl --data "status=$STATUS&size=$SIZE" --data-binary @/tmp/vigilante.message http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID &> /dev/null
 
   rm /tmp/vigilante.message
 fi
