@@ -92,7 +92,30 @@ if [[ ! `hostname` == *"casbkp"* ]]; then
   exit 1
 fi
 
-[ -n "$VIGILANTE_ID" ] && curl "http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID?start" &> /dev/null
+if [ -n "$VIGILANTE_ID" ]; then
+	# ask the scheduler
+	while true; do
+		OUT=$(curl -s http://vigilante.corp.withings.com/checkin/$VIGILANTE_ID/runnable 2> /dev/null)
+		RUN=$(echo $OUT | sed -re 's/.*run"."([A-Z]+)".*/\1/;')
+
+		case "$RUN" in
+			"DISCARD")
+				exit 1
+				;;
+			"RUN")
+				break
+				;;
+			"WAIT")
+				sleep $(( 60 * 5 ))
+				;;
+			*)
+				nb_errors=$(( $nb_errors +1))
+				[ $nb_errors -gt 10 ] && exit 5
+				sleep $(( 60 * 5 ))
+				;;
+		esac
+	done
+fi
 
 # Real reload
 service cassandra stop
