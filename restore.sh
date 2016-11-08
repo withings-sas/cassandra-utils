@@ -57,8 +57,8 @@ if [ "$BACKUP_HOST" = "" ]; then
   echo "Missing required source host (-s)"
   exit
 fi
-if [ "$BACKUP_DATE" = "" -a "$TRIGGER_FILE" = "" -a "$INCREMENT_DATE" = "" ]; then
-  echo "Missing required date (-d), trigger file (-t) or increment date (-i)"
+if [ "$BACKUP_DATE" = "" -a "$TRIGGER_FILE" = "" -a "$INCREMENT_DATE" = "" -a "$VIGILANTE_ID" = "" ]; then
+  echo "Missing required date (-d), trigger file (-t), increment date (-i) or vigilante id (-v)"
   exit
 fi
 if [ "$DBS" = "" ]; then
