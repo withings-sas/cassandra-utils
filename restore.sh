@@ -148,16 +148,20 @@ for tablefullpath in /var/lib/cassandra/data/$keyspacename/*; do
           CMD="rsync -a --delete $REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH/ $tablefullpath/"
           echo "  "$CMD
           $CMD
+	  STATUS=$(( $STATUS + $? ))
         elif [ $METHOD = "rdiff-backup" -a -z "$INCREMENT_DATE" ]; then
           CMD="rsync -a --delete $REMOTE_HOST:$REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH/ $tablefullpath/"
           echo "  "$CMD
           $CMD
+	  STATUS=$(( $STATUS + $? ))
         elif [ $METHOD = "rdiff-backup" ] && [ -n "$INCREMENT_DATE" ]; then # restore increment
           CMD="rdiff-backup --force -r $INCREMENT_DATE $REMOTE_HOST::$REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH/ $tablefullpath/"
           echo "  "$CMD
           $CMD
+	  STATUS=$(( $STATUS + $? ))
         else
           ssh $REMOTE_HOST "cat $REMOTE_PATH/$BACKUP_HOST/$BACKUP_FULLPATH" | tar -C "$tablefullpath" -xjf -
+	  STATUS=$(( $STATUS + $? ))
         fi
         chown cassandra: -R $tablefullpath
       fi
@@ -184,6 +188,7 @@ for keyspacename in $DBS; do
       # There is backup available for this KS, purge it
       echo "Delete $keyspacename data"
       rm -rf /var/lib/cassandra/data/$keyspacename
+      STATUS=$(( $STATUS + $? ))
     fi
   fi
 
@@ -200,14 +205,17 @@ for keyspacename in $DBS; do
       CMD="rsync -a --delete $REMOTE_HOST:$ksremotefullpath/$cf/ $tablefullpath/"
       echo "  "$CMD
       $CMD
+      STATUS=$(( $STATUS + $? ))
     elif [ $METHOD = "rdiff-backup" ] && [ -n "$INCREMENT_DATE" ]; then # restore increment
       CMD="rdiff-backup --force -r $INCREMENT_DATE $REMOTE_HOST::$ksremotefullpath/$cf/ $tablefullpath/"
       echo "  "$CMD
       $CMD
+      STATUS=$(( $STATUS + $? ))
     else
       if [ $cf_ext = "tbz2" ]; then
         echo "Extract $ksremotefullpath/$cf into $tablefullpath"
         ssh $REMOTE_HOST "cat $ksremotefullpath/$cf" | tar -C "$tablefullpath" -xjf -
+        STATUS=$(( $STATUS + $? ))
       fi
     fi
     chown cassandra: -R $tablefullpath
