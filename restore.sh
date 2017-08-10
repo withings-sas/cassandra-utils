@@ -57,7 +57,7 @@ if [ "$BACKUP_HOST" = "" ]; then
   echo "Missing required source host (-s)"
   exit
 fi
-if [ "$BACKUP_DATE" = "" -a "$TRIGGER_FILE" = "" -a "$INCREMENT_DATE" = "" -a "$VIGILANTE_ID" = "" ]; then
+if [ "$BACKUP_DATE" = "" -a "$TRIGGER_FILE" = "" -a "$INCREMENT_DATE" = "" ]; then
   echo "Missing required date (-d), trigger file (-t), increment date (-i) or vigilante id (-v)"
   exit
 fi
@@ -87,7 +87,7 @@ if [ ! -z "$TRIGGER_FILE" ]; then
   fi
 fi
 
-if [[ ! `hostname` == *"casbkp"* ]]; then
+if [[ `hostname` != *"casbkp"* && `hostname` != *"eqx-cas-05"* && `hostname` != *"eqx-cas-06"* && `hostname` != *"eqx-cas-07"* && `hostname` != *"eqx-cas-08"* && `hostname` != *"eqx-cas-10"* ]]; then
   echo "not a backup machine, do not run this script here"
   exit 1
 fi
